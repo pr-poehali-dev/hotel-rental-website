@@ -6,9 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/components/ui/use-toast';
 import Icon from '@/components/ui/icon';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import RoomDetails from '@/components/RoomDetails';
+import BookingForm from '@/components/BookingForm';
+import PaymentForm from '@/components/PaymentForm';
 
 interface Room {
   id: number;
@@ -72,14 +76,52 @@ export default function Index() {
   const [guests, setGuests] = useState('2');
   const [location, setLocation] = useState('');
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [showRoomDetails, setShowRoomDetails] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [bookingData, setBookingData] = useState<any>(null);
 
   const handleSearch = () => {
     console.log('Поиск номеров:', { checkIn, checkOut, guests, location });
+    toast({
+      title: "Поиск номеров",
+      description: "Функция поиска будет добавлена в следующей версии",
+    });
   };
 
-  const handleBooking = (room: Room) => {
+  const handleRoomClick = (room: Room) => {
     setSelectedRoom(room);
-    console.log('Бронирование номера:', room);
+    setShowRoomDetails(true);
+  };
+
+  const handleBookingClick = (room: Room) => {
+    setSelectedRoom(room);
+    setShowRoomDetails(false);
+    setShowBookingForm(true);
+  };
+
+  const handlePayment = (data: any) => {
+    setBookingData(data);
+    setShowBookingForm(false);
+    setShowPaymentForm(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentForm(false);
+    setSelectedRoom(null);
+    setBookingData(null);
+    toast({
+      title: "Бронирование подтверждено!",
+      description: "Спасибо за выбор нашего отеля. Подтверждение отправлено на ваш email.",
+    });
+  };
+
+  const closeAllModals = () => {
+    setShowRoomDetails(false);
+    setShowBookingForm(false);
+    setShowPaymentForm(false);
+    setSelectedRoom(null);
+    setBookingData(null);
   };
 
   return (
@@ -209,7 +251,7 @@ export default function Index() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sampleRooms.map((room) => (
-              <Card key={room.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover-scale animate-scale-in">
+              <Card key={room.id} className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover-scale animate-scale-in cursor-pointer" onClick={() => handleRoomClick(room)}>
                 <div className="relative">
                   <img
                     src={room.image}
@@ -219,6 +261,11 @@ export default function Index() {
                   <Badge className="absolute top-4 left-4 bg-hotel-accent">
                     {room.type}
                   </Badge>
+                  <div className="absolute top-4 right-4">
+                    <Button size="icon" variant="ghost" className="bg-white/80 hover:bg-white">
+                      <Icon name="Eye" className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 
                 <CardHeader>
@@ -264,7 +311,10 @@ export default function Index() {
                     </div>
                     
                     <Button 
-                      onClick={() => handleBooking(room)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBookingClick(room);
+                      }}
                       className="w-full bg-primary hover:bg-primary-600 mt-4"
                     >
                       Забронировать
@@ -373,6 +423,28 @@ export default function Index() {
           </div>
         </div>
       </footer>
+
+      {/* Modals */}
+      <RoomDetails
+        room={selectedRoom}
+        isOpen={showRoomDetails}
+        onClose={closeAllModals}
+        onBook={handleBookingClick}
+      />
+
+      <BookingForm
+        room={selectedRoom}
+        isOpen={showBookingForm}
+        onClose={closeAllModals}
+        onPayment={handlePayment}
+      />
+
+      <PaymentForm
+        bookingData={bookingData}
+        isOpen={showPaymentForm}
+        onClose={closeAllModals}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }
